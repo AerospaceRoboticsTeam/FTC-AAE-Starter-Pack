@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
@@ -15,6 +16,14 @@ public class MecanumDrive_5518_PP extends HolonomicDrive {
     private final DcMotorEx frontLeft, frontRight, backLeft, backRight;
     private final IMU imu;
     private double heading;
+
+    private double boost = 1.0;
+
+    // Store last powers for telemetry
+    private double frontLeftPower = 0.0;
+    private double frontRightPower = 0.0;
+    private double backLeftPower = 0.0;
+    private double backRightPower = 0.0;
 
     public MecanumDrive_5518_PP(HardwareMap hwMap) {
         frontLeft  = hwMap.get(DcMotorEx.class, "left_front_mtr");
@@ -40,6 +49,10 @@ public class MecanumDrive_5518_PP extends HolonomicDrive {
         }
     }
 
+    public void setBoost(double boostValue) {
+        boost = Range.clip(boostValue, 0.0, 1.0);
+    }
+
     public void updateIMU() {
         heading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
     }
@@ -58,10 +71,47 @@ public class MecanumDrive_5518_PP extends HolonomicDrive {
         double bl = y - x + turn;
         double br = y + x - turn;
 
-        double max = Math.max(1.0, Math.abs(fl) + Math.abs(fr) + Math.abs(bl) + Math.abs(br));
-        frontLeft.setPower(fl / max);
-        frontRight.setPower(fr / max);
-        backLeft.setPower(bl / max);
-        backRight.setPower(br / max);
+        // Normalize by max absolute value, not sum
+        double maxPower = Math.max(
+            Math.max(Math.abs(fl), Math.abs(fr)),
+            Math.max(Math.abs(bl), Math.abs(br))
+        );
+        if (maxPower < 1.0) maxPower = 1.0;
+
+        // Apply boost multiplier
+        fl = (fl / maxPower) * boost;
+        fr = (fr / maxPower) * boost;
+        bl = (bl / maxPower) * boost;
+        br = (br / maxPower) * boost;
+
+        // Set motor powers
+        frontLeft.setPower(fl);
+        frontRight.setPower(fr);
+        backLeft.setPower(bl);
+        backRight.setPower(br);
+
+        // Save for telemetry
+        frontLeftPower = fl;
+        frontRightPower = fr;
+        backLeftPower = bl;
+        backRightPower = br;
+    }
+
+    // Getter methods for telemetry
+    public double getFrontLeftPower() {
+        return frontLeftPower;
+    }
+
+    public double getFrontRightPower() {
+        return frontRightPower;
+    }
+
+    public double getBackLeftPower() {
+        return backLeftPower;
+    }
+
+    public double getBackRightPower() {
+        return backRightPower;
     }
 }
+
