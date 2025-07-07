@@ -29,7 +29,7 @@ public class TeleOpPedro extends LinearOpMode {
             double rawX = -gamepad1.left_stick_x;
             double turn = -gamepad1.right_stick_x;
 
-            // Boost control (mimics legacy: left trigger for full speed, else half speed)
+            // Boost control (in the past: left trigger for full speed, else half speed)
             double boost = gamepad1.left_trigger > 0.1 ? 1.0 : 0.5;
             drive.setBoost(boost);
 
