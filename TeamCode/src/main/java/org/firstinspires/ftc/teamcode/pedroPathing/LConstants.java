@@ -10,7 +10,7 @@ import dev.frozenmilk.pedropathing.localization.enums.EncoderDirection;
 public class LConstants {
     static {
         // ===== For Mecanum localizer =====
-        MecanumConstants.forwardTicksToInches = 0.001986;  // You’ll tune this later
+        MecanumConstants.forwardTicksToInches = 0.001986;  // Todo: tune this later
         MecanumConstants.strafeTicksToInches = 0.001986;
 
         // Encoder directions
