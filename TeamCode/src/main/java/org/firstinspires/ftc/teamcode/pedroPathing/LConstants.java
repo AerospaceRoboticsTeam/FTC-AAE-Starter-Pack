@@ -19,7 +19,10 @@ public class LConstants {
         MecanumConstants.backLeftEncoderDirection = EncoderDirection.REVERSE;
         MecanumConstants.backRightEncoderDirection = EncoderDirection.FORWARD;
 
-        // Optional: use encoder names if using external encoders
-        // MecanumConstants.frontLeftEncoderName = "left_front_mtr";
+        // Explicit encoder names matching motor hardwareMap names
+        MecanumConstants.frontLeftEncoderName = "left_front_mtr";
+        MecanumConstants.frontRightEncoderName = "right_front_mtr";
+        MecanumConstants.backLeftEncoderName = "left_back_mtr";
+        MecanumConstants.backRightEncoderName = "right_back_mtr";
     }
 }
