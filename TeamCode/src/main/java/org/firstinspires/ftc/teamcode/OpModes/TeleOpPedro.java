@@ -1,86 +1,64 @@
-package org.firstinspires.ftc.teamcode.Libs;
+package org.firstinspires.ftc.teamcode.OpModes;
 
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
-import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.util.Range;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.Libs.MecanumDrive_5518_PP;
+import org.firstinspires.ftc.teamcode.Libs.PedroWrapper;
 
-import dev.frozenmilk.pedropathing.drive.HolonomicDrive;
 import dev.frozenmilk.pedropathing.geometry.Vector2d;
 
-public class MecanumDrive_5518_PP extends HolonomicDrive {
-
-    private final DcMotorEx frontLeft, frontRight, backLeft, backRight;
-    private final IMU imu;
-    private double heading;
-
-    private double boost = 1.0;  // Default no scaling
-    private double flPower, frPower, blPower, brPower;  // Store raw motor powers
-
-    public MecanumDrive_5518_PP(HardwareMap hwMap) {
-        frontLeft  = hwMap.get(DcMotorEx.class, "left_front_mtr");
-        frontRight = hwMap.get(DcMotorEx.class, "right_front_mtr");
-        backLeft   = hwMap.get(DcMotorEx.class, "left_back_mtr");
-        backRight  = hwMap.get(DcMotorEx.class, "right_back_mtr");
-
-        imu = hwMap.get(IMU.class, "imu");
-        IMU.Parameters parameters = new IMU.Parameters(
-            new RevHubOrientationOnRobot(
-                RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
-                RevHubOrientationOnRobot.UsbFacingDirection.UP
-            )
-        );
-        imu.initialize(parameters);
-        imu.resetYaw();
-
-        frontLeft.setDirection(DcMotorEx.Direction.REVERSE);
-        backLeft.setDirection(DcMotorEx.Direction.REVERSE);
-
-        for (DcMotorEx motor : new DcMotorEx[]{frontLeft, frontRight, backLeft, backRight}) {
-            motor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        }
-    }
-
-    public void updateIMU() {
-        heading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
-    }
-
-    public double getHeading() {
-        return heading;
-    }
-
-    public void setBoost(double boost) {
-        this.boost = boost;
-    }
+@TeleOp(name = "Field-Centric Pedro TeleOp")
+public class TeleOpPedro extends LinearOpMode {
 
     @Override
-    public void setDrivePower(Vector2d drive, double turn) {
-        double x = drive.getX();
-        double y = drive.getY();
+    public void runOpMode() {
+        MecanumDrive_5518_PP drive = new MecanumDrive_5518_PP(hardwareMap);
+        PedroWrapper pedro = new PedroWrapper(drive);
 
-        // Raw motor powers
-        flPower = y + x + turn;
-        frPower = y - x - turn;
-        blPower = y - x + turn;
-        brPower = y + x - turn;
+        // Optional: Reset encoders & run using encoders if relevant here (teleop often uses RUN_WITHOUT_ENCODER)
+        // drive.resetEncoders();
+        // drive.runUsingEncoders();
 
-        double max = Math.max(1.0, Math.abs(flPower));
-        max = Math.max(max, Math.abs(frPower));
-        max = Math.max(max, Math.abs(blPower));
-        max = Math.max(max, Math.abs(brPower));
+        waitForStart();
 
-        // Normalize and apply boost scaling
-        frontLeft.setPower((flPower / max) * boost);
-        frontRight.setPower((frPower / max) * boost);
-        backLeft.setPower((blPower / max) * boost);
-        backRight.setPower((brPower / max) * boost);
+        while (opModeIsActive()) {
+            // Gamepad inputs - standard left stick for translation, right stick for rotation
+            double rawY = -gamepad1.left_stick_y;
+            double rawX = -gamepad1.left_stick_x;
+            double turn = -gamepad1.right_stick_x;
+
+            // Boost control (mimics legacy: left trigger for full speed, else half speed)
+            double boost = gamepad1.left_trigger > 0.1 ? 1.0 : 0.5;
+            drive.setBoost(boost);
+
+            // Update IMU heading
+            drive.updateIMU();
+            double heading = drive.getHeading();
+
+            // Field-centric coordinate transformation
+            double cos = Math.cos(-heading);
+            double sin = Math.sin(-heading);
+            double fieldX = rawX * cos - rawY * sin;
+            double fieldY = rawX * sin + rawY * cos;
+
+            Vector2d move = new Vector2d(fieldX, fieldY);
+
+            // Apply drive power with boost
+            drive.setDrivePower(move, turn);
+
+            // Update PedroPathing control loop
+            pedro.update();
+
+            // Telemetry for debug and driver feedback
+            telemetry.addData("Heading (deg)", Math.toDegrees(heading));
+            telemetry.addData("Boost", boost);
+            telemetry.addData("Drive Power", 
+                String.format("FL: %.2f FR: %.2f BL: %.2f BR: %.2f",
+                    drive.getFrontLeftPower(), drive.getFrontRightPower(),
+                    drive.getBackLeftPower(), drive.getBackRightPower()));
+            telemetry.update();
+        }
     }
-
-    // Getters for telemetry
-    public double getFrontLeftPower() { return frontLeft.getPower(); }
-    public double getFrontRightPower() { return frontRight.getPower(); }
-    public double getBackLeftPower() { return backLeft.getPower(); }
-    public double getBackRightPower() { return backRight.getPower(); }
 }
