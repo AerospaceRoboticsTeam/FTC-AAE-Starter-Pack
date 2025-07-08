@@ -11,9 +11,25 @@
 
 // Custom definitions may go here
 
+// Add Fastload plugin buildscript block at the top
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            url = 'https://www.matthewo.tech/maven/'
+        }
+    }
+    dependencies {
+        classpath 'org.team11260:fast-load-plugin:0.1.2'
+    }
+}
+
 // Include common definitions from above.
 apply from: '../build.common.gradle'
 apply from: '../build.dependencies.gradle'
+
+// Apply the Fastload plugin
+apply plugin: 'org.team11260.fast-load-plugin'
 
 android {
     namespace = 'org.firstinspires.ftc.teamcode'
@@ -23,6 +39,17 @@ android {
     }
 }
 
+// Add the Fastload repository if not already present
+repositories {
+    mavenCentral()
+    maven {
+        url = 'https://www.matthewo.tech/maven/'
+    }
+}
+
 dependencies {
     implementation project(':FtcRobotController')
+
+    // Add Fastload implementation dependency
+    implementation 'org.team11260:fast-load:0.1.2'
 }
